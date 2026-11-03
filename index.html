@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tour 360° – Tiện ích bên ngoài</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏙️</text></svg>">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.css">
+<style>
+:root{--bg:#0f1419;--panel:rgba(15,20,25,.82);--text:#f2f4f7;--muted:#9aa5b1;--accent:#e8c27a;--air:#5cc8ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#panorama{position:fixed;inset:0}
+.bar{position:fixed;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:flex;gap:10px;align-items:center;pointer-events:none;z-index:10}
+.bar>*{pointer-events:auto}
+.chip{background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:10px 16px;font-size:15px;color:var(--text)}
+#title{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+button.chip{cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit;flex:none}
+button.chip:hover{border-color:var(--accent)}
+.sp{flex:1}
+#menu{position:fixed;top:0;bottom:0;left:0;width:min(320px,86vw);background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-right:1px solid rgba(255,255,255,.12);z-index:20;transform:translateX(-102%);transition:transform .25s ease;padding:max(16px,env(safe-area-inset-top)) 14px 20px;overflow-y:auto}
+#menu.open{transform:none}
+#menu h2{margin:6px 6px 14px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+#menu h3{margin:18px 6px 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+#menu .x{background:none;border:0;color:var(--text);font-size:22px;cursor:pointer;line-height:1}
+.item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;color:var(--text);font:inherit;font-size:15px;padding:11px 10px;border-radius:10px;cursor:pointer}
+.item:hover{background:rgba(255,255,255,.07)}
+.item.active{background:rgba(232,194,122,.16);color:var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+.dot.air{background:var(--air)}
+/* hotspots */
+.hs{position:relative;width:22px;height:22px;border-radius:50%;background:rgba(232,194,122,.28);border:2px solid var(--accent);box-shadow:0 0 0 0 rgba(232,194,122,.5);animation:pulse 2s infinite;cursor:pointer}
+.hs::after{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--accent)}
+.hs.air{background:rgba(92,200,255,.25);border-color:var(--air);animation-name:pulseAir}
+.hs.air::after{background:var(--air)}
+.hs .lbl{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);white-space:nowrap;background:rgba(15,20,25,.88);color:#fff;font-size:13px;padding:5px 10px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .15s}
+.hs:hover .lbl{opacity:1}
+@keyframes pulse{70%{box-shadow:0 0 0 14px rgba(232,194,122,0)}100%{box-shadow:0 0 0 0 rgba(232,194,122,0)}}
+@keyframes pulseAir{70%{box-shadow:0 0 0 14px rgba(92,200,255,0)}100%{box-shadow:0 0 0 0 rgba(92,200,255,0)}}
+@media (hover:none){.hs .lbl{opacity:1;font-size:12px;padding:3px 8px}}
+#loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:30;transition:opacity .4s}
+#loading.hide{opacity:0;pointer-events:none}
+.pnlm-load-box{display:none!important}
+.pnlm-controls-container{top:auto!important;bottom:max(14px,env(safe-area-inset-bottom));left:auto!important;right:12px}
+.pnlm-controls{background:var(--panel)!important;border-radius:10px!important;border:1px solid rgba(255,255,255,.12)!important}
+</style>
+</head>
+<body>
+<div id="loading">Đang tải tour…</div>
+<div id="panorama"></div>
+<div class="bar">
+  <button class="chip" id="openMenu" aria-label="Danh sách cảnh">☰ <span>Danh sách cảnh</span></button>
+  <div class="chip" id="title"></div>
+  <div class="sp"></div>
+  <button class="chip" id="rot" title="Bật/tắt tự xoay">⟳ Tự xoay</button>
+</div>
+<nav id="menu" aria-label="Danh sách cảnh"></nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.js"></script>
+<script>
+const TOUR = {"info": {"area": "", "price": "", "note": ""}, "default": {"firstScene": "Trung_tâm_dự_án", "autoLoad": true, "autoRotate": 8}, "scenes": {"Trung_tâm_dự_án": {"panorama": "1lPepFBM3dvKqXJBt-AA765S5mNi0AZeb", "hotSpots": [{"pitch": -28.1359, "yaw": 42.7573, "type": "scene", "cssClass": "", "sceneId": "Cầu_Lumis", "text": "Cầu Lumis"}, {"pitch": -78, "yaw": -169.2816, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}, {"pitch": -35.5922, "yaw": 174.6408, "type": "scene", "cssClass": "", "sceneId": "Cầu_Sunset", "text": "Cầu Sunset"}, {"pitch": 5.8835, "yaw": 38.5631, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": 5.8835, "yaw": -86.5631, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": -20.9126, "yaw": -79.8058, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Seren", "text": "Sảnh tòa Seren"}, {"pitch": -23.4757, "yaw": 167.6505, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Ivy", "text": "Sảnh tòa Ivy"}, {"pitch": -23.4757, "yaw": -95.1845, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Lavish", "text": "Sảnh tòa Lavish"}], "pitch": -12.5243, "yaw": 50.9126}, "Góc_nhìn_trên_cao_từ_cổng_chào_dự_án": {"panorama": "14CIb81FK60JuFQ3S2dvPlfqn7qUfm5jk", "hotSpots": [{"pitch": -26.2609, "yaw": -37.165, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}, {"pitch": -67.9806, "yaw": 17.8252, "type": "scene", "cssClass": "", "sceneId": "Cầu_Lumis", "text": "Cầu Lumis"}, {"pitch": -18.8155, "yaw": -52.0777, "type": "scene", "cssClass": "", "sceneId": "Cầu_Sunset", "text": "Cầu Sunset"}, {"pitch": -18.1165, "yaw": -85.3981, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Ivy", "text": "Sảnh tòa Ivy"}, {"pitch": -17.1845, "yaw": 8.2718, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Seren", "text": "Sảnh tòa Seren"}, {"pitch": 21.9612, "yaw": 18.0583, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": 18.233, "yaw": 167.6505, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": -13.4563, "yaw": -18.7573, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Lavish", "text": "Sảnh tòa Lavish"}, {"pitch": 1.4563, "yaw": -35.767, "type": "scene", "cssClass": "Flycam", "sceneId": "Trung_tâm_dự_án", "text": "Trung tâm dự án"}], "pitch": -18.1165, "yaw": -40.6602}, "Suối_Harmonia": {"panorama": "18Khtn-BowsH5VOJ2Q4Ju5w2Z3clbIoUX", "hotSpots": [{"pitch": -0.8738, "yaw": 167.4175, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Ivy", "text": "Sảnh tòa Ivy"}, {"pitch": 5.1845, "yaw": 172.7767, "type": "scene", "cssClass": "", "sceneId": "Cầu_Sunset", "text": "Cầu Sunset"}, {"pitch": 3.3204, "yaw": 30.1748, "type": "scene", "cssClass": "", "sceneId": "Cầu_Lumis", "text": "Cầu Lumis"}, {"pitch": 38.7379, "yaw": 25.9806, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": 41.068, "yaw": -130.6019, "type": "scene", "cssClass": "Flycam", "sceneId": "Trung_tâm_dự_án", "text": "Trung tâm dự án"}, {"pitch": 39.4369, "yaw": -83.301, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": 0.5243, "yaw": -76.5437, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Seren", "text": "Sảnh tòa Seren"}, {"pitch": 0.0583, "yaw": -174.6408, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Lavish", "text": "Sảnh tòa Lavish"}], "pitch": 31.7, "yaw": -129.9}, "Cảnh_ngoài_ban_đêm": {"panorama": "1ebCbO0HDUIqrVctC8MaewG9WXrX89LDX", "hotSpots": [{"pitch": 4.9515, "yaw": 8.2718, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": -15.7864, "yaw": -8.9709, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}, {"pitch": -18.8155, "yaw": -3.8447, "type": "scene", "cssClass": "", "sceneId": "Cầu_Lumis", "text": "Cầu Lumis"}, {"pitch": -12.7573, "yaw": -22.4854, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Ivy", "text": "Sảnh tòa Ivy"}, {"pitch": -12.0583, "yaw": 3.8447, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Seren", "text": "Sảnh tòa Seren"}, {"pitch": -0.8738, "yaw": -9.2039, "type": "scene", "cssClass": "Flycam", "sceneId": "Trung_tâm_dự_án", "text": "Trung tâm dự án"}], "pitch": -7.6, "yaw": -8.3}, "Cảnh_ngoài_ban_ngày": {"panorama": "19k-A6zNzJNd2YeCXThCYLrKtNkDUiqEJ", "hotSpots": [{"pitch": 8.6796, "yaw": -23.8835, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": -9.0291, "yaw": -14.7961, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Seren", "text": "Sảnh tòa Seren"}, {"pitch": -11.8252, "yaw": -3.6117, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Lavish", "text": "Sảnh tòa Lavish"}, {"pitch": -10.8932, "yaw": 7.1068, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Ivy", "text": "Sảnh tòa Ivy"}, {"pitch": -8.3301, "yaw": 4.0777, "type": "scene", "cssClass": "", "sceneId": "Cầu_Sunset", "text": "Cầu Sunset"}, {"pitch": -9.9612, "yaw": -9.9029, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}], "pitch": -7.2, "yaw": -3.6}, "Cầu_Lumis": {"panorama": "1OWwTJkV3G6Kqr16l_FoWwkgupcQlsmlj", "hotSpots": [{"pitch": -6.699, "yaw": 30.6408, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}, {"pitch": -4.1359, "yaw": -14.7961, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Ivy", "text": "Sảnh tòa Ivy"}, {"pitch": -1.8058, "yaw": 13.6311, "type": "scene", "cssClass": "", "sceneId": "Cầu_Sunset", "text": "Cầu Sunset"}, {"pitch": 18.699, "yaw": 36.699, "type": "scene", "cssClass": "Flycam", "sceneId": "Trung_tâm_dự_án", "text": "Trung tâm dự án"}, {"pitch": 35.0097, "yaw": -121.0485, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": 29.4175, "yaw": 106.1359, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": -2.9709, "yaw": 87.2621, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Seren", "text": "Sảnh tòa Seren"}], "pitch": 10.8, "yaw": 36.9}, "Cầu_Sunset": {"panorama": "1vpTHpO7ESMox--CxbMv5SuxQzj-dfzof", "hotSpots": [{"pitch": 27.7864, "yaw": 94.9515, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": 33.8447, "yaw": -74.4466, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": 38.0388, "yaw": 52.7767, "type": "scene", "cssClass": "Flycam", "sceneId": "Trung_tâm_dự_án", "text": "Trung tâm dự án"}, {"pitch": -14.6214, "yaw": 81.2039, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}, {"pitch": -1.5619, "yaw": 107.767, "type": "scene", "cssClass": "", "sceneId": "Cầu_Lumis", "text": "Cầu Lumis"}, {"pitch": -12.5243, "yaw": -70.4854, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Lavish", "text": "Sảnh tòa Lavish"}, {"pitch": -12.9903, "yaw": -112.4272, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Ivy", "text": "Sảnh tòa Ivy"}], "pitch": 4.0194, "yaw": 93.3204}, "Toàn_cảnh_chính_giữa_nhìn_từ_trên_cao": {"panorama": "1PubyhqySq0-1xxRgSeVRg1j8hm3yFbBJ", "hotSpots": [{"pitch": -2.0388, "yaw": 85.8641, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": -1.8058, "yaw": -147.8447, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": -83.1262, "yaw": 54.8738, "type": "scene", "cssClass": "", "sceneId": "Cầu_Lumis", "text": "Cầu Lumis"}, {"pitch": -73.8058, "yaw": -173.0097, "type": "scene", "cssClass": "", "sceneId": "Cầu_Sunset", "text": "Cầu Sunset"}, {"pitch": -79.6311, "yaw": -154.3689, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}, {"pitch": -64.2524, "yaw": -87.2621, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Seren", "text": "Sảnh tòa Seren"}, {"pitch": -60.5243, "yaw": 169.0485, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Ivy", "text": "Sảnh tòa Ivy"}, {"pitch": -57.0291, "yaw": -140.3883, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Lavish", "text": "Sảnh tòa Lavish"}], "pitch": -40.4854, "yaw": 23.6505}, "Sảnh_tòa_Ivy": {"panorama": "164AJNLkEOVGtYerkqH_yHTkjwz816Bhi", "hotSpots": [{"pitch": -0.8738, "yaw": -77.7087, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Lavish", "text": "Sảnh tòa Lavish"}, {"pitch": 47.1262, "yaw": 73.2816, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": 42.233, "yaw": -134.3301, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": 7.2816, "yaw": -50.9126, "type": "scene", "cssClass": "", "sceneId": "Cầu_Sunset", "text": "Cầu Sunset"}, {"pitch": 0.2913, "yaw": -51.1456, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}], "pitch": 20.6, "yaw": -0.3}, "Sảnh_tòa_Lavish": {"panorama": "1lYJB6ZeYUgN2bgPlyfgmcRbpsdQ-6ucA", "hotSpots": [{"pitch": 3.0874, "yaw": 67.2233, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Ivy", "text": "Sảnh tòa Ivy"}, {"pitch": 2.1553, "yaw": -65.1262, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Seren", "text": "Sảnh tòa Seren"}, {"pitch": 50.1553, "yaw": 176.7379, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": 26.8544, "yaw": 71.6505, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": 14.5049, "yaw": 49.5146, "type": "scene", "cssClass": "", "sceneId": "Cầu_Sunset", "text": "Cầu Sunset"}, {"pitch": -0.6408, "yaw": -44.3883, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}], "pitch": 14.3, "yaw": 4.5}, "Sảnh_tòa_Seren": {"panorama": "16lUns-2i39pLx0Fz4I26b4wDIm9yFRGc", "hotSpots": [{"pitch": 0.2913, "yaw": 76.0777, "type": "scene", "cssClass": "", "sceneId": "Sảnh_tòa_Lavish", "text": "Sảnh tòa Lavish"}, {"pitch": 42.233, "yaw": -46.4854, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_đêm", "text": "Cảnh ngoài ban đêm"}, {"pitch": 43.6311, "yaw": 171.6117, "type": "scene", "cssClass": "Flycam", "sceneId": "Cảnh_ngoài_ban_ngày", "text": "Cảnh ngoài ban ngày"}, {"pitch": 1.6893, "yaw": 42.5243, "type": "scene", "cssClass": "", "sceneId": "Suối_Harmonia", "text": "Suối Harmonia"}], "pitch": 13.1, "yaw": 1.7}}};
+
+/* Nguồn ảnh: mặc định lấy từ Google Drive (file phải để chế độ "Bất kỳ ai có đường liên kết").
+   Nếu muốn tự host trên Cloudflare: tải ảnh về thư mục /panos, đặt tên <ID>.jpg rồi đổi LOCAL = true. */
+const LOCAL = false;
+const imgUrl = id => LOCAL ? "panos/" + id + ".jpg" : "https://lh3.googleusercontent.com/d/" + id;
+
+const pretty = id => id.replace(/_/g, " ");
+const ids = Object.keys(TOUR.scenes);
+const aerial = new Set();
+ids.forEach(i => TOUR.scenes[i].hotSpots.forEach(h => { if (h.cssClass === "Flycam") aerial.add(h.sceneId); }));
+ids.forEach(i => { if (/trên cao/.test(pretty(i))) aerial.add(i); });
+
+const scenes = {};
+ids.forEach(id => {
+  const s = TOUR.scenes[id];
+  scenes[id] = {
+    title: pretty(id),
+    type: "equirectangular",
+    panorama: imgUrl(s.panorama),
+    pitch: s.pitch, yaw: s.yaw,
+    hotSpots: s.hotSpots.map(h => ({
+      pitch: h.pitch, yaw: h.yaw, type: "info", text: h.text,
+      createTooltipFunc: (div, args) => {
+        div.classList.add("hs"); if (h.cssClass === "Flycam") div.classList.add("air");
+        const l = document.createElement("span"); l.className = "lbl"; l.textContent = args; div.appendChild(l);
+      },
+      createTooltipArgs: h.text,
+      clickHandlerFunc: () => go(h.sceneId)
+    }))
+  };
+});
+
+const viewer = pannellum.viewer("panorama", {
+  default: { firstScene: TOUR.default.firstScene, sceneFadeDuration: 800, autoLoad: TOUR.default.autoLoad,
+             autoRotate: -TOUR.default.autoRotate, autoRotateInactivityDelay: 4000, compass: false, showControls: true, hfov: 100 },
+  scenes
+});
+
+const titleEl = document.getElementById("title"), menu = document.getElementById("menu"), loading = document.getElementById("loading");
+function go(id){ viewer.loadScene(id); closeMenu(); }
+function mark(){
+  const cur = viewer.getScene();
+  titleEl.textContent = pretty(cur);
+  menu.querySelectorAll(".item").forEach(b => b.classList.toggle("active", b.dataset.id === cur));
+  document.title = pretty(cur) + " – Tour 360°";
+}
+function buildMenu(){
+  const g = (label, list) => `<h3>${label}</h3>` + list.map(i => `<button class="item" data-id="${i}"><span class="dot ${aerial.has(i)?"air":""}"></span>${pretty(i)}</button>`).join("");
+  menu.innerHTML = `<h2>Tour 360° <button class="x" aria-label="Đóng">×</button></h2>` +
+    g("Trên cao (Flycam)", ids.filter(i => aerial.has(i))) + g("Trải nghiệm dưới mặt đất", ids.filter(i => !aerial.has(i)));
+  menu.querySelectorAll(".item").forEach(b => b.onclick = () => go(b.dataset.id));
+  menu.querySelector(".x").onclick = closeMenu;
+}
+function closeMenu(){ menu.classList.remove("open"); }
+document.getElementById("openMenu").onclick = () => menu.classList.toggle("open");
+let rotOn = true;
+document.getElementById("rot").onclick = () => {
+  rotOn = !rotOn;
+  rotOn ? viewer.startAutoRotate(-TOUR.default.autoRotate) : viewer.stopAutoRotate();
+  document.getElementById("rot").style.opacity = rotOn ? 1 : .55;
+};
+buildMenu();
+viewer.on("load", () => { loading.classList.add("hide"); mark(); });
+viewer.on("scenechange", mark);
+viewer.on("error", m => { loading.textContent = "Không tải được ảnh: " + m; loading.classList.remove("hide"); });
+</script>
+</body>
+</html>
